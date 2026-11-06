@@ -1,0 +1,433 @@
+# -AI-attendance-board
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Smart Attendance Board</title>
+
+<style>
+*{box-sizing:border-box}
+body{
+ margin:0;
+ font-family:Arial,sans-serif;
+ background:#10172d;
+ color:white;
+}
+header{
+ background:linear-gradient(120deg,#087cf0,#6847db);
+ padding:25px;
+ text-align:center;
+}
+header h1{margin:0;font-size:28px}
+nav{
+ display:flex;
+ justify-content:center;
+ flex-wrap:wrap;
+ gap:10px;
+ padding:15px;
+ background:#1c2745;
+}
+nav button{
+ width:auto;
+ margin:0;
+ padding:12px 18px;
+}
+.container{
+ max-width:850px;
+ margin:25px auto;
+ padding:20px;
+}
+.card{
+ background:#202d4d;
+ padding:22px;
+ border-radius:15px;
+ margin-bottom:20px;
+}
+h2{color:#55d9ff}
+input,select{
+ width:100%;
+ padding:13px;
+ margin:9px 0 16px;
+ border:0;
+ border-radius:8px;
+ font-size:15px;
+}
+button{
+ border:0;
+ border-radius:8px;
+ padding:13px;
+ background:#08c9ee;
+ color:#071329;
+ font-weight:bold;
+ cursor:pointer;
+}
+button:hover{background:#65eaff}
+.action{
+ width:100%;
+ margin-top:10px;
+}
+.page{display:none}
+.page.active{display:block}
+.stats{
+ display:grid;
+ grid-template-columns:repeat(3,1fr);
+ gap:12px;
+}
+.stat{
+ background:#33466d;
+ padding:18px 8px;
+ text-align:center;
+ border-radius:12px;
+}
+.stat h2{font-size:27px;margin:8px}
+table{
+ width:100%;
+ border-collapse:collapse;
+ margin-top:15px;
+}
+th,td{
+ padding:12px 8px;
+ border-bottom:1px solid #ffffff30;
+ text-align:left;
+}
+th{color:#58ddff}
+.table-wrap{overflow-x:auto}
+.success{color:#5cffaa}
+.error{color:#ff8282}
+small{color:#c4cee0}
+</style>
+</head>
+
+<body>
+
+<header>
+<h1>🤖 AI SMART ATTENDANCE</h1>
+<p>Smart School Attendance Management System</p>
+</header>
+
+<nav>
+<button onclick="showPage('register')">📝 Registration</button>
+<button onclick="showPage('attendance')">📸 Attendance</button>
+<button onclick="showPage('dashboard')">📊 Dashboard</button>
+</nav>
+
+<div class="container">
+
+<!-- REGISTRATION -->
+
+<section id="register" class="page active">
+<div class="card">
+
+<h2>📝 Student Registration</h2>
+
+<form id="registrationForm">
+
+<label>Student Full Name</label>
+<input id="name" required placeholder="Enter Student Name">
+
+<label>Student ID / Roll Number</label>
+<input id="roll" required placeholder="Enter Unique Student ID">
+
+<label>Select Class</label>
+<select id="class" required>
+<option value="">Choose Class</option>
+<option>Class 1</option>
+<option>Class 2</option>
+<option>Class 3</option>
+<option>Class 4</option>
+<option>Class 5</option>
+<option>Class 6</option>
+<option>Class 7</option>
+<option>Class 8</option>
+<option>Class 9</option>
+<option>Class 10</option>
+<option>Class 11</option>
+<option>Class 12</option>
+</select>
+
+<label>Section</label>
+<input id="section" placeholder="Example: A" required>
+
+<button class="action" type="submit">
+Register Student
+</button>
+
+</form>
+
+<p id="registerMessage"></p>
+
+</div>
+</section>
+
+<!-- ATTENDANCE -->
+
+<section id="attendance" class="page">
+
+<div class="card">
+<h2>📸 Student Attendance</h2>
+
+<p>Enter registered Student ID for verification.</p>
+
+<input id="attendanceID" placeholder="Enter Student ID">
+
+<button class="action" onclick="markAttendance()">
+Verify & Mark Attendance
+</button>
+
+<p id="attendanceMessage"></p>
+
+<small>
+Only registered students can be marked present.
+One attendance per student per day.
+</small>
+
+</div>
+
+</section>
+
+<!-- DASHBOARD -->
+
+<section id="dashboard" class="page">
+
+<div class="card">
+
+<h2>📊 Attendance Dashboard</h2>
+
+<div class="stats">
+
+<div class="stat">
+<p>Total Students</p>
+<h2 id="totalStudents">0</h2>
+</div>
+
+<div class="stat">
+<p>Present Today</p>
+<h2 id="presentToday">0</h2>
+</div>
+
+<div class="stat">
+<p>Absent Today</p>
+<h2 id="absentToday">0</h2>
+</div>
+
+</div>
+
+<h2>👨‍🎓 Registered Students</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>ID</th>
+<th>Class</th>
+</tr>
+</thead>
+<tbody id="studentTable"></tbody>
+</table>
+</div>
+
+<h2>📋 Attendance Records</h2>
+
+<div class="table-wrap">
+<table>
+<thead>
+<tr>
+<th>Name</th>
+<th>ID</th>
+<th>Date</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody id="attendanceTable"></tbody>
+</table>
+</div>
+
+<button class="action" onclick="refreshDashboard()">
+🔄 Refresh Dashboard
+</button>
+
+</div>
+</section>
+
+</div>
+
+<script>
+
+// DATABASE
+let students = JSON.parse(
+ localStorage.getItem("students") || "[]"
+);
+
+let records = JSON.parse(
+ localStorage.getItem("attendance") || "[]"
+);
+
+function saveData(){
+ localStorage.setItem("students",JSON.stringify(students));
+ localStorage.setItem("attendance",JSON.stringify(records));
+}
+
+// PAGE NAVIGATION
+function showPage(page){
+
+ document.querySelectorAll(".page").forEach(p=>{
+  p.classList.remove("active");
+ });
+
+ document.getElementById(page).classList.add("active");
+
+ if(page==="dashboard"){
+  refreshDashboard();
+ }
+}
+
+// REGISTRATION
+document.getElementById("registrationForm")
+.addEventListener("submit",function(e){
+
+ e.preventDefault();
+
+ let name=document.getElementById("name").value.trim();
+ let roll=document.getElementById("roll").value.trim();
+ let cls=document.getElementById("class").value;
+ let section=document.getElementById("section").value.trim();
+
+ if(students.some(s=>s.roll.toLowerCase()===roll.toLowerCase())){
+  document.getElementById("registerMessage").innerHTML=
+  "<span class='error'>Student ID already registered!</span>";
+  return;
+ }
+
+ students.push({
+  name:name,
+  roll:roll,
+  cls:cls,
+  section:section
+ });
+
+ saveData();
+
+ document.getElementById("registerMessage").innerHTML=
+ "<span class='success'>✅ Registration Successful!</span>";
+
+ this.reset();
+
+});
+
+// MARK ATTENDANCE
+function markAttendance(){
+
+ let id=document.getElementById("attendanceID").value.trim();
+
+ let student=students.find(
+  s=>s.roll.toLowerCase()===id.toLowerCase()
+ );
+
+ let message=document.getElementById("attendanceMessage");
+
+ if(!student){
+  message.innerHTML=
+  "<span class='error'>❌ Student Not Registered!</span>";
+  return;
+ }
+
+ let today=new Date().toLocaleDateString("en-CA");
+
+ let alreadyMarked=records.some(
+  r=>r.roll.toLowerCase()===id.toLowerCase()
+  && r.date===today
+ );
+
+ if(alreadyMarked){
+  message.innerHTML=
+  "<span class='error'>⚠️ Attendance Already Marked Today!</span>";
+  return;
+ }
+
+ records.push({
+  name:student.name,
+  roll:student.roll,
+  cls:student.cls,
+  date:today,
+  status:"Present"
+ });
+
+ saveData();
+
+ message.innerHTML=
+ "<span class='success'>✅ Attendance Successfully Marked for "+
+ student.name+"</span>";
+
+ document.getElementById("attendanceID").value="";
+
+}
+
+// DASHBOARD
+function refreshDashboard(){
+
+ let today=new Date().toLocaleDateString("en-CA");
+
+ let todayRecords=records.filter(r=>r.date===today);
+
+ document.getElementById("totalStudents").innerText=
+ students.length;
+
+ document.getElementById("presentToday").innerText=
+ todayRecords.length;
+
+ document.getElementById("absentToday").innerText=
+ Math.max(0,students.length-todayRecords.length);
+
+ let studentHTML="";
+
+ students.forEach(s=>{
+  studentHTML+=`
+  <tr>
+   <td>${escapeHTML(s.name)}</td>
+   <td>${escapeHTML(s.roll)}</td>
+   <td>${escapeHTML(s.cls)} ${escapeHTML(s.section)}</td>
+  </tr>`;
+ });
+
+ document.getElementById("studentTable").innerHTML=
+ studentHTML || "<tr><td colspan='3'>No students registered</td></tr>";
+
+ let attendanceHTML="";
+
+ records.slice().reverse().forEach(r=>{
+  attendanceHTML+=`
+  <tr>
+   <td>${escapeHTML(r.name)}</td>
+   <td>${escapeHTML(r.roll)}</td>
+   <td>${escapeHTML(r.date)}</td>
+   <td class="success">${escapeHTML(r.status)}</td>
+  </tr>`;
+ });
+
+ document.getElementById("attendanceTable").innerHTML=
+ attendanceHTML || "<tr><td colspan='4'>No attendance records</td></tr>";
+
+}
+
+// SAFE DISPLAY
+function escapeHTML(value){
+ return String(value).replace(/[&<>"']/g,function(c){
+  return {
+   "&":"&amp;",
+   "<":"&lt;",
+   ">":"&gt;",
+   '"':"&quot;",
+   "'":"&#39;"
+  }[c];
+ });
+}
+
+refreshDashboard();
+
+</script>
+
+</body>
+</html>
